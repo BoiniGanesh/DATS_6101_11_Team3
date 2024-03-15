@@ -1,9 +1,9 @@
-# **E-commerce Business Transaction Analysis**
+
 
 ---
 title: "E-commerce Business Transaction Analysis"
 author: "Varshith Reddy Bhimireddy"
-date: "02/23/24"
+date: "March 16 2024"
 # date: "`r Sys.Date()`"
 output:
   html_document:
@@ -68,6 +68,21 @@ summary(data)
 data <- na.omit(data)
 
 ```
+```{r}
+# unique products count
+unique_products_count <- length(unique(data$ProductNo))
+
+# unique customers count
+unique_customers_count <- length(unique(data$CustomerNo))
+
+# unique countries  count
+unique_countries_count <- length(unique(data$Country))
+
+cat("Count of Unique Products:", unique_products_count, "\n")
+
+cat("Count of Unique Customers:", unique_customers_count, "\n")
+
+cat("Count of Unique Countries:", unique_countries_count, "\n")
 
 #### Removing Duplicate Values:
 
