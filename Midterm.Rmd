@@ -1,8 +1,6 @@
-
-
 ---
 title: "E-commerce Business Transaction Analysis"
-author: "Varshith Reddy Bhimireddy"
+author: "Team 3"
 date: "March 16 2024"
 # date: "`r Sys.Date()`"
 output:
@@ -29,7 +27,7 @@ options(scientific=T, digits = 3)
 # use scipen=999 to prevent scientific notation at all times
 ```
 
-## Loading the dataset
+## Loading the Dataset
 
 ```{r}
 # Reading the dataset
@@ -67,7 +65,10 @@ summary(data)
 
 data <- na.omit(data)
 
+summary(data)
+
 ```
+
 ```{r}
 # unique products count
 unique_products_count <- length(unique(data$ProductNo))
@@ -86,7 +87,6 @@ cat("Count of Unique Countries:", unique_countries_count, "\n")
 
 #### Removing Duplicate Values:
 
-```{r}
 # check for Duplicate Rows
 
 sum(duplicated(data))
@@ -100,6 +100,7 @@ data <- data %>% distinct()
 # Checking for number of duplicated rows.
 
 sum(duplicated(data))
+
 
 ```
 
@@ -158,3 +159,55 @@ summary(data)
 
 str(data)
 ```
+
+## **EXPLORATORY DATA ANALYSIS**
+
+### Distribution of the variables:
+
+```{r}
+
+# Creating Histogram plot and Q-Q plot to see distribution of the Variables
+
+library(ggplot2)
+
+
+ggplot(data, aes(x=Price)) +
+  geom_histogram(fill='green', color = "red") +
+  xlim(0,50)+
+  labs(title="Distribution of Price", x="Price", y='density')
+  
+qqnorm(data$Price, main='Q-Q Plot of Price', col='blue')
+qqline(data$Price, col='black')
+
+
+
+  
+
+```
+
+The Q-Q plot of the 'Price' data indicates a deviation from the normal distribution. The central values align closely with the theoretical line, suggesting normality in the mid-range of the data.
+
+```{r}
+
+ggplot(data, aes(x=Quantity)) +
+  geom_histogram(binwidth= 1,fill='green', color = "red") +
+  labs(title="Distribution of Quantity", x="Quantity", y='Density')
+  
+qqnorm(data$Price, main='Q-Q Plot of Price', col='blue')
+qqline(data$Price, col='black')
+
+```
+
+```{r}
+ggplot(data, aes(x=Revenue)) +
+  geom_histogram(fill='green', color = "red") +
+  xlim(0,1000)+
+  labs(title="Distribution of Revenue", x="Revenue", y='density')
+  
+qqnorm(data$Price, main='Q-Q Plot of Revenue', col='blue')
+qqline(data$Price, col='black')
+```
+
+In these graphs, the data are not normally distributed and contain outliers on the higher end of the scale.
+
+#### 
