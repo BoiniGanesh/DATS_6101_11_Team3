@@ -212,6 +212,7 @@ qqline(data$Price, col='black')
 In these graphs, the data are not normally distributed and contain outliers on the higher end of the scale.
 
 #### 
+
 ```{r}
 library("ggplot2")
 
@@ -244,4 +245,6 @@ datanew <- na.omit(datanew)
 summary(datanew)
 
 ```
+
+
 
