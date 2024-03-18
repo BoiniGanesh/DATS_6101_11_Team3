@@ -30,6 +30,7 @@ options(scientific=T, digits = 3)
 ## Loading the Dataset
 
 ```{r}
+
 # Reading the dataset
 
 data = read.csv("Sales_Transaction.csv")
@@ -211,3 +212,39 @@ qqline(data$Price, col='black')
 In these graphs, the data are not normally distributed and contain outliers on the higher end of the scale.
 
 #### 
+
+```{r}
+library("ggplot2")
+
+#removing quantity outliers
+data2 = outlierKD2(data, Quantity, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
+
+# Count of NA values in quantity 
+na_quantity <- sum(is.na(data2$Quantity))
+cat("Number of NA values in Quantity:", na_quantity, "\n")
+
+#removing price outliers
+data3 = outlierKD2(data2, Price, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
+
+# Count of NA values in price
+na_price <- sum(is.na(data3$Price))
+cat("Number of NA values in Price:", na_price, "\n")
+
+#removing revenue outliers
+datanew = outlierKD2(data3, Revenue, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
+
+# Count of NA values in revenue 
+na_revenue <- sum(is.na(datanew$Revenue))
+cat("Number of NA values in revenue:", na_revenue, "\n")
+
+
+#after  the outliers are removed , they  are replaced with NA values hence  removing the rows containing those NA values
+
+datanew <- na.omit(datanew)
+
+summary(datanew)
+
+```
+
+
+

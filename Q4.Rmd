@@ -26,22 +26,19 @@ options(scientific=T, digits = 3)
 # use scipen=999 to prevent scientific notation at all times
 ```
 
-## Loading the dataset
+
 
 ```{r}
-# Reading the dataset
 
-data = read.csv("Sales_Transaction.csv")
+# Load the dplyr package
+library(dplyr)
 
-# Structure of the dataset
+# Group the data by CustomerNo and TransactionNo, then count the number of products in each group
+product_counts <- data %>%
+  group_by(CustomerNo, TransactionNo) %>%
+  summarise(NumProducts = n_distinct(ProductNo))
 
-str(data)
-```{r}
-products_per_transaction <- aggregate(ProductNo ~ TransactionNo, data = data, FUN = function(x) length(x))
+# View the resulting dataframe
+print(product_counts)
 
-# Rename the column for clarity
-colnames(products_per_transaction)[2] <- "NumProducts"
-
-# Print the first few rows to check
-head(products_per_transaction)
 ```
