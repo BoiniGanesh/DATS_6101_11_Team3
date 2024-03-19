@@ -1,0 +1,50 @@
+---
+title: "Q3"
+author: "Deepika"
+date: "March 16 2024"
+# date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r init, include=FALSE}
+# some of common options (and the defaults) are: 
+# include=T, eval=T, echo=T, results='hide'/'asis'/'markup',..., collapse=F, warning=T, message=T, error=T, cache=T, fig.width=6, fig.height=4, fig.dim=c(6,4) #inches, fig.align='left'/'center','right', 
+library(ezids)
+knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+#knitr::opts_chunk$set(warning = F, results = "hide", message = F)
+options(scientific=T, digits = 3) 
+# options(scipen=9, digits = 3) 
+# ‘scipen’: integer. A penalty to be applied when deciding to print numeric values in fixed or exponential notation.  Positive values bias towards fixed and negative towards scientific notation: fixed notation will be preferred unless it is more than ‘scipen’ digits wider.
+# use scipen=999 to prevent scientific notation at all times
+```
+
+## Loading the dataset
+
+```{r}
+str(data)
+```
+library(dplyr)
+dataCountrytop <- data %>%
+  group_by(Country) %>%
+  summarise(Revenue = sum(Revenue)) %>%
+  arrange(desc(Revenue)) %>%
+  head(10)
+print(dataCountrytop)
+
+library(ggplot2)
+
+plot <- ggplot(dataCountrytop, aes(x = Country, y = Revenue, fill = Revenue)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Highest Revenue Countries", x = "Country", y = "Revenue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_gradient(low = "blue", high = "red") + coord_flip() 
+print(plot)
