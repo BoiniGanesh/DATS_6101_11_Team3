@@ -1,5 +1,4 @@
 title: "E-commerce Business Transaction Analysis"
-author: "Areena"
 date: "March 16 2024"
 # date: "`r Sys.Date()`"
 output:
