@@ -32,8 +32,24 @@ options(scientific=T, digits = 3)
 ```{r}
 str(data)
 ```
-```{r}
+library(dplyr)
+dataCountrytop <- data %>%
+  group_by(Country) %>%
+  summarise(Revenue = sum(Revenue)) %>%
+  arrange(desc(Revenue)) %>%
+  head(10)
+print(dataCountrytop)
+
 library(ggplot2)
+
+
+plot <- ggplot(dataCountrytop, aes(x = Country, y = Revenue, fill = Revenue)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Highest Revenue Countries", x = "Country", y = "Revenue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_gradient(low = "blue", high = "red") + coord_flip() 
+print(plot)
+=======
 data$Date <- as.Date(data$Date, format="%Y-%m-%d") 
 data$Month <- format(data$Date, "%Y-%m")
 data$Quarter <- quarters(data$Date)
@@ -53,3 +69,4 @@ ggplot(quarterly_sales, aes(x = Quarter, y =TransactionValue )) +
 anova_result <- aov(TransactionValue ~ Quarter, data=data)
 summary(anova_result)
 ```
+

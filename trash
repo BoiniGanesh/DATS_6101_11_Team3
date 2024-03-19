@@ -33,23 +33,21 @@ options(scientific=T, digits = 3)
 str(data)
 ```
 ```{r}
-library(ggplot2)
-data$Date <- as.Date(data$Date, format="%Y-%m-%d") 
-data$Month <- format(data$Date, "%Y-%m")
-data$Quarter <- quarters(data$Date)
-data$Revenue <- with(data, Quantity * Price) 
-monthly_sales <- aggregate(Revenue ~ Month, data=data, FUN=sum)
-ggplot(monthly_sales, aes(x=Month, y=Revenue)) + 
-  geom_bar(stat="identity", fill="skyblue") +
-  theme(axis.text.x = element_text(angle=45, hjust=1)) +
-  labs(title="Monthly Sales Trends", x="Month", y="Total Sales")
-quarterly_sales <- aggregate(Revenue ~ Quarter, data=data, FUN=sum)
-anova_result <- aov(Revenue ~ Quarter, data=data)
-summary(anova_result)
-ggplot(quarterly_sales, aes(x = Quarter, y = Revenue )) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(title = "Quarterly Sales Trends", x = "Quarter", y = "Total Sales") +
-  theme_minimal()
-anova_result <- aov(Revenue ~ Quarter, data=data)
-summary(anova_result)
+purchase_frequencies <- table(data$ProductNo)
+
+# Identify Top Products
+top_products <- names(sort(purchase_frequencies, decreasing = TRUE))[1:5]  
+
+# Statistical Analysis
+# Filter data for top products
+top_products_data <- subset(data, ProductNo %in% top_products)
+
+# Count purchase frequencies for top products
+top_products_purchase_frequencies <- table(top_products_data$ProductNo)
+
+# Chi-squared test
+chi_squared_test <- chisq.test(top_products_purchase_frequencies)
+
+# Print the results
+print(chi_squared_test)
 ```
