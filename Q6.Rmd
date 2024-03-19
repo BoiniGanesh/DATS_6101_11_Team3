@@ -42,9 +42,31 @@ print(dataCountrytop)
 
 library(ggplot2)
 
+
 plot <- ggplot(dataCountrytop, aes(x = Country, y = Revenue, fill = Revenue)) +
   geom_bar(stat = "identity") +
   labs(title = "Highest Revenue Countries", x = "Country", y = "Revenue") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   scale_fill_gradient(low = "blue", high = "red") + coord_flip() 
 print(plot)
+=======
+data$Date <- as.Date(data$Date, format="%Y-%m-%d") 
+data$Month <- format(data$Date, "%Y-%m")
+data$Quarter <- quarters(data$Date)
+data$TransactionValue <- with(data, Quantity * Price) 
+monthly_sales <- aggregate(TransactionValue ~ Month, data=data, FUN=sum)
+ggplot(monthly_sales, aes(x=Month, y=TransactionValue)) + 
+  geom_bar(stat="identity", fill="skyblue") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) +
+  labs(title="Monthly Sales Trends", x="Month", y="Total Sales")
+quarterly_sales <- aggregate(TransactionValue ~ Quarter, data=data, FUN=sum)
+anova_result <- aov(TransactionValue ~ Quarter, data=data)
+summary(anova_result)
+ggplot(quarterly_sales, aes(x = Quarter, y =TransactionValue )) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Quarterly Sales Trends", x = "Quarter", y = "Total Sales") +
+  theme_minimal()
+anova_result <- aov(TransactionValue ~ Quarter, data=data)
+summary(anova_result)
+```
+
