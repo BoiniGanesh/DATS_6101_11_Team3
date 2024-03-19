@@ -211,7 +211,9 @@ qqline(data$Revenue, col='black')
 
 In these graphs, the data are not normally distributed and contain outliers on the higher end of the scale.
 
+
 #### Removing Outliers:
+
 
 ```{r}
 library("ggplot2")
@@ -231,17 +233,21 @@ na_price <- sum(is.na(data3$Price))
 cat("Number of NA values in Price:", na_price, "\n")
 
 #removing revenue outliers
+
 new_data = outlierKD2(data3, Revenue, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
 
 # Count of NA values in revenue 
 na_revenue <- sum(is.na(new_data$Revenue))
+
 cat("Number of NA values in revenue:", na_revenue, "\n")
 
 
 #after  the outliers are removed , they  are replaced with NA values hence  removing the rows containing those NA values
+
 
 new_data<- na.omit(new_data)
 
 summary(new_data)
 
 ```
+
