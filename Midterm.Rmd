@@ -120,7 +120,7 @@ data <- data[data$Quantity >=0,]
 ```{r}
 # Converts date strings to Date objects
 
-data$Date <- as.Date(data$Date, format = "%m/%d/%Y")
+data$Date <- as.Date(data$Date, format = "%Y-%m-%d")
 
 # Convert character variables to factors
 
@@ -211,9 +211,7 @@ qqline(data$Revenue, col='black')
 
 In these graphs, the data are not normally distributed and contain outliers on the higher end of the scale.
 
-
 #### Removing Outliers:
-
 
 ```{r}
 library("ggplot2")
@@ -233,17 +231,14 @@ na_price <- sum(is.na(data3$Price))
 cat("Number of NA values in Price:", na_price, "\n")
 
 #removing revenue outliers
-
 new_data = outlierKD2(data3, Revenue, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
 
 # Count of NA values in revenue 
 na_revenue <- sum(is.na(new_data$Revenue))
-
 cat("Number of NA values in revenue:", na_revenue, "\n")
 
 
 #after  the outliers are removed , they  are replaced with NA values hence  removing the rows containing those NA values
-
 
 new_data<- na.omit(new_data)
 
@@ -251,3 +246,135 @@ summary(new_data)
 
 ```
 
+## SMART QUESTIONS
+
+#### Q1 How many Unique products does the customer purchase in each transaction?
+
+```{r}
+# Load the dplyr package
+library(dplyr)
+
+# Group the data by CustomerNo and TransactionNo, then count the number of distinct products in each group
+product_counts <- new_data %>%
+  group_by(CustomerNo, TransactionNo) %>%
+  summarise(DistinctProducts = n_distinct(ProductNo), .groups = 'drop')
+
+product_counts
+```
+
+#### Q2 What are the most frequently purchased products in our dataset, and is there a statistically significant difference in the Purchase Quantity among these top products?
+
+```{r}
+
+# Identifying the most frequently purchased products
+Product_frequencies <- new_data %>%
+  group_by(ProductNo,ProductName)%>%
+  count(ProductNo, sort=TRUE)
+
+# Select the top 10 frequently purchased products
+top_products <- head(Product_frequencies,10)
+
+print(top_products)
+```
+
+```{r}
+# Plotting the frequencies using bar chart
+
+ggplot(top_products, aes(x = n,  y = reorder(ProductNo, n))) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Top 10 Most Frequently Purchased Products",
+       x = "Frequency ",
+       y = "Product No") 
+
+
+```
+
+```{r}
+# ANOVA test to determine if statistically significance difference in the purchase Quantity among these top products
+
+# Filter the dataset to include only the top 10 products
+filtered_data <- new_data %>%
+  filter(ProductNo %in% top_products$ProductNo)
+
+
+# Null Hypothesis(H0) : There is no difference in average Purchase Quantity among the top 10 most frequently purchased products.
+
+# Alternative Hypothesis(H1) : At least one of the top 10 products has a different average Purchase Quantity compared to others.
+
+anova_result <- aov(Quantity ~ ProductNo, data = filtered_data)
+
+summary(anova_result)
+
+
+```
+
+The P-value(2e-16) \< 0.05 suggest that we are rejecting the null hypothesis of the ANOVA test. This means that there is a significant difference in the mean of purchased quantity of top products.
+
+We need to perform post-hoc test , to determined this which ones have means that are significantly different from each other.
+
+```{r}
+# Perform Tukey's HSD test
+
+
+tukey_result <- TukeyHSD(anova_result)
+
+tukey_result
+
+
+
+```
+
+1.**Pairs with Significant Differences:** Whenever the p-value (p-adj) is less than 0.05, and the confidence interval (lwr,upr) not have zero, we can say there is a significant difference in purchase quantity between the two products. For eg, the comparison 21931-21212 shows a difference of -7.3696 with a p-value \<0.001 which indicates that Product 21931 is purchased in quantities that are lower than Product 21212.
+
+**2.Pairs without Significant Differences:** When confidence interval includes zero or the p-value is greater than 0.05, it meansd that there's not a significant difference in Purchase Quantity between the two products. For eg, product pair 22411-21931 with a difference of 0.0840 and p-value of 1.000 indicates no significant difference in purchase quantity between these two products.
+
+**3.Highly Significant Differences:** For products pairs which have a very small p-value (\<0.01), they are considered to have a highly significant difference in Purchase Quantity.
+
+#### Q3.How do monthly and Quaterly sales trends vary within a year ?
+
+```{r}
+ 
+new_data$Month <- format(new_data$Date, "%Y-%m")
+new_data$Quarter <- quarters(new_data$Date)
+
+monthly_sales <- aggregate(Revenue ~ Month, data=new_data, FUN=sum)
+
+ggplot(monthly_sales, aes(x=Month, y=Revenue)) + 
+  geom_bar(stat="identity", fill="skyblue") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) +
+  labs(title="Monthly Sales Trends", x="Month", y="Total Sales")
+
+quarterly_sales <- aggregate(Revenue ~ Quarter, data=new_data, FUN=sum)
+
+ggplot(quarterly_sales, aes(x = Quarter, y = Revenue )) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Quarterly Sales Trends", x = "Quarter", y = "Total Sales") +
+  theme_minimal()
+
+
+```
+
+#### Q4. How do average transaction values vary across different countries in our sales dataset, and is this variation statistically significant?
+
+```{r}
+
+dataCountrytop <- new_data %>%
+  group_by(Country) %>%
+  summarise(Revenue = sum(Revenue)) %>%
+  arrange(desc(Revenue))
+
+top_10_countries <- head(dataCountrytop,10)
+
+top_10_countries
+
+
+```
+
+```{r}
+ggplot(top_10_countries, aes(x = reorder(Country, Revenue), y = Revenue, fill = Revenue)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Highest Revenue Countries", x = "Country", y = "Revenue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_gradient(low = "blue", high = "red") + 
+  coord_flip()
+```
