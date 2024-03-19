@@ -173,7 +173,7 @@ library(ggplot2)
 
 
 ggplot(data, aes(x=Price)) +
-  geom_histogram(fill='green', color = "red") +
+  geom_histogram(bins=30, fill='green', color = "red") +
   xlim(0,50)+
   labs(title="Distribution of Price", x="Price", y='density')
   
@@ -191,27 +191,29 @@ The Q-Q plot of the 'Price' data indicates a deviation from the normal distribut
 ```{r}
 
 ggplot(data, aes(x=Quantity)) +
-  geom_histogram(binwidth= 1,fill='green', color = "red") +
+  geom_histogram(bins=30, fill='green', color = "red") +
   labs(title="Distribution of Quantity", x="Quantity", y='Density')
   
-qqnorm(data$Price, main='Q-Q Plot of Price', col='blue')
-qqline(data$Price, col='black')
+qqnorm(data$Quantity, main='Q-Q Plot of Price', col='blue')
+qqline(data$Quantity, col='black')
 
 ```
 
 ```{r}
 ggplot(data, aes(x=Revenue)) +
-  geom_histogram(fill='green', color = "red") +
+  geom_histogram(bins=30, fill='green', color = "red") +
   xlim(0,1000)+
   labs(title="Distribution of Revenue", x="Revenue", y='density')
   
-qqnorm(data$Price, main='Q-Q Plot of Revenue', col='blue')
-qqline(data$Price, col='black')
+qqnorm(data$Revenue, main='Q-Q Plot of Revenue', col='blue')
+qqline(data$Revenue, col='black')
 ```
 
 In these graphs, the data are not normally distributed and contain outliers on the higher end of the scale.
 
-#### 
+
+#### Removing Outliers:
+
 
 ```{r}
 library("ggplot2")
@@ -231,20 +233,21 @@ na_price <- sum(is.na(data3$Price))
 cat("Number of NA values in Price:", na_price, "\n")
 
 #removing revenue outliers
-datanew = outlierKD2(data3, Revenue, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
+
+new_data = outlierKD2(data3, Revenue, rm=TRUE, boxplt=FALSE, histogram=FALSE, qqplt=TRUE) 
 
 # Count of NA values in revenue 
-na_revenue <- sum(is.na(datanew$Revenue))
+na_revenue <- sum(is.na(new_data$Revenue))
+
 cat("Number of NA values in revenue:", na_revenue, "\n")
 
 
 #after  the outliers are removed , they  are replaced with NA values hence  removing the rows containing those NA values
 
-datanew <- na.omit(datanew)
 
-summary(datanew)
+new_data<- na.omit(new_data)
+
+summary(new_data)
 
 ```
-
-
 
