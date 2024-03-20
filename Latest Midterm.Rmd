@@ -404,3 +404,44 @@ ggplot(top_10_countries, aes(x = reorder(Country, Revenue), y = Revenue, fill = 
   coord_flip()
 ```
 
+#### Q5.What is the average revenue from high value customers ?, what is the impact on revenue earned from these customers and the country wise distribution?
+```{r}
+
+threshold <- quantile(new_data$Revenue, 0.95)
+high_val_customer <- unique(new_data$CustomerNo[new_data$Revenue > threshold])
+length(high_val_customer)
+
+high_val_transactions <- subset(new_data, CustomerNo %in% high_val_customer)
+avg_transaction_amt <- mean(high_val_transactions$Revenue)
+avg_transaction_totalamt <- mean(new_data$Revenue)
+high_val_transactions
+
+avg_transaction_amt
+avg_transaction_totalamt
+
+ggplot(new_data, aes(x = Revenue)) +
+  geom_histogram(fill = "skyblue", color = "black", bins = 30) +
+  geom_vline(xintercept = threshold, color = "red", linetype = "dashed", size = 1) +
+  labs(x = "Transaction Amount", y = "Frequency", title = "Distribution of Customer Spending") +
+  theme_minimal()
+
+ggplot(new_data, aes(x = CustomerNo, y = Revenue, fill = CustomerNo %in% high_val_customer)) +
+  geom_boxplot() +
+  labs(x = "Customer Number", y = "Revenue", title = "Distribution of Revenue for High-Value Customers") +
+  scale_fill_manual(values = c("FALSE" = "orange", "TRUE" = "blue")) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggplot(new_data, aes(y = Country, x = Revenue, fill = CustomerNo %in% high_val_customer)) +
+  geom_bar(stat = "summary", fun = "mean", position = "dodge") +
+  labs(y = "Country", x = "Revenue", title = "Average Revenue by Country") +
+  scale_fill_manual(values = c("FALSE" = "orange", "TRUE" = "blue")) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+total_revenue <- sum(new_data$Revenue)
+high_value_revenue <- sum(subset(new_data, CustomerNo %in% high_val_customer)$Revenue)
+high_value_contribution <- (high_value_revenue / total_revenue) * 100
+
+cat("High-Value Customer Revenue Contribution:", high_value_contribution, "%")
+```
