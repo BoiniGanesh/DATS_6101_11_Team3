@@ -403,8 +403,7 @@ ggplot(top_10_countries, aes(x = reorder(Country, Revenue), y = Revenue, fill = 
   scale_fill_gradient(low = "blue", high = "red") + 
   coord_flip()
 ```
-
-#### Q5.What is the average revenue from high value customers ?, what is the impact on revenue earned from these customers and the country wise distribution?
+#### Q5.What proportion of revenue is contributed by high-value customers, and how does their spending behavior compare to the overall customer base?
 ```{r}
 
 threshold <- quantile(new_data$Revenue, 0.95)
@@ -420,9 +419,9 @@ avg_transaction_amt
 avg_transaction_totalamt
 
 ggplot(new_data, aes(x = Revenue)) +
-  geom_histogram(fill = "skyblue", color = "black", bins = 30) +
-  geom_vline(xintercept = threshold, color = "red", linetype = "dashed", size = 1) +
-  labs(x = "Transaction Amount", y = "Frequency", title = "Distribution of Customer Spending") +
+  geom_histogram(fill = "skyblue", color = "black", bins = 40) +
+  geom_vline(xintercept = threshold, color = "orange", linetype = "dashed", size = 2) +
+  labs(x = "Revenue", y = "Frequency", title = "Distribution of Customer Spending") +
   theme_minimal()
 
 ggplot(new_data, aes(x = CustomerNo, y = Revenue, fill = CustomerNo %in% high_val_customer)) +
