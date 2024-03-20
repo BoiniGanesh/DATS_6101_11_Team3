@@ -403,6 +403,7 @@ ggplot(top_10_countries, aes(x = reorder(Country, Revenue), y = Revenue, fill = 
   scale_fill_gradient(low = "blue", high = "red") + 
   coord_flip()
 ```
+
 #### Q5.What is the average revenue from high value customers ?, what is the impact on revenue earned from these customers and the country wise distribution?
 ```{r}
 
