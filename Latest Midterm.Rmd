@@ -189,17 +189,6 @@ qqline(data$Price, col='black')
 The Q-Q plot of the 'Price' data indicates a deviation from the normal distribution. The central values align closely with the theoretical line, suggesting normality in the mid-range of the data.
 
 ```{r}
-
-ggplot(data, aes(x=Quantity)) +
-  geom_histogram(bins=30, fill='green', color = "red") +
-  labs(title="Distribution of Quantity", x="Quantity", y='Density')
-  
-qqnorm(data$Quantity, main='Q-Q Plot of Price', col='blue')
-qqline(data$Quantity, col='black')
-
-```
-
-```{r}
 ggplot(data, aes(x=Revenue)) +
   geom_histogram(bins=30, fill='green', color = "red") +
   xlim(0,1000)+
@@ -274,7 +263,7 @@ Product_frequencies <- new_data %>%
 # Select the top 10 frequently purchased products
 top_products <- head(Product_frequencies,10)
 
-print(top_products)
+top_products
 ```
 
 ```{r}
@@ -289,6 +278,10 @@ ggplot(top_products, aes(x = n,  y = reorder(ProductNo, n))) +
 
 ```
 
+The above Bar chart visualizes the top 10 most frequently purchased products. We conduct statistical test to determine if the differences in purchase quantities among these top products are significant, considering that the quantity data be normally distributed.
+
+We did ANOVA test these variables.
+
 ```{r}
 # ANOVA test to determine if statistically significance difference in the purchase Quantity among these top products
 
@@ -300,6 +293,8 @@ filtered_data <- new_data %>%
 # Null Hypothesis(H0) : There is no difference in average Purchase Quantity among the top 10 most frequently purchased products.
 
 # Alternative Hypothesis(H1) : At least one of the top 10 products has a different average Purchase Quantity compared to others.
+
+
 
 anova_result <- aov(Quantity ~ ProductNo, data = filtered_data)
 
@@ -330,31 +325,61 @@ tukey_result
 
 **3.Highly Significant Differences:** For products pairs which have a very small p-value (\<0.01), they are considered to have a highly significant difference in Purchase Quantity.
 
-#### Q3.How do monthly and Quaterly sales trends vary within a year ?
+#### Q3.How do monthly and Quaterly sales trends vary within a year ? Is there a statistically significant difference in the distribution of the number of sales transactions across different quarters of the year?"
 
 ```{r}
- 
+
+# Extract Month and Quarter from Date 
 new_data$Month <- format(new_data$Date, "%Y-%m")
 new_data$Quarter <- quarters(new_data$Date)
 
+# Aggregate sales by month
 monthly_sales <- aggregate(Revenue ~ Month, data=new_data, FUN=sum)
 
+# Aggregate sales by quarter
+quarterly_sales <- aggregate(Revenue ~ Quarter, data=new_data, FUN=sum)
+
+# Plot for Monthly Sales Trends
 ggplot(monthly_sales, aes(x=Month, y=Revenue)) + 
   geom_bar(stat="identity", fill="skyblue") +
   theme(axis.text.x = element_text(angle=45, hjust=1)) +
   labs(title="Monthly Sales Trends", x="Month", y="Total Sales")
 
-quarterly_sales <- aggregate(Revenue ~ Quarter, data=new_data, FUN=sum)
-
+# Plot for Quarterly Sales Trends
 ggplot(quarterly_sales, aes(x = Quarter, y = Revenue )) +
-  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_bar(stat = "identity", fill = "lightgreen") +
   labs(title = "Quarterly Sales Trends", x = "Quarter", y = "Total Sales") +
   theme_minimal()
 
 
 ```
 
-#### Q4. How do average transaction values vary across different countries in our sales dataset, and is this variation statistically significant?
+We did Chi-squared test to determine significant difference in the number of transaction across different quarters of the year.
+
+```{r}
+
+# Count the number of transactions per quarter
+
+transaction_counts_by_quarter <- table(new_data$Quarter)
+
+transaction_counts_by_quarter
+```
+
+```{r}
+
+# Null Hypothesis(H0) : There is  significant difference in the  number of transactions across different quarters of the year.
+
+# Alternative Hypothesis(H1) : There is a significant difference in the number of sales transactions across different quarters of the year.
+
+# Perform the Chi-squared test
+chisquared_test <- chisq.test(transaction_counts_by_quarter)
+
+chisquared_test
+```
+
+The P-value (2e-16) \< 0.05, indicating that there is a statistically significant difference in the distribution of the number of sales transactions across different quarters , suggesting seasonality factors affect sales volume.
+
+#### Q4. How do average transaction values vary across different countries in our sales dataset ?
 
 ```{r}
 
@@ -378,3 +403,4 @@ ggplot(top_10_countries, aes(x = reorder(Country, Revenue), y = Revenue, fill = 
   scale_fill_gradient(low = "blue", high = "red") + 
   coord_flip()
 ```
+
