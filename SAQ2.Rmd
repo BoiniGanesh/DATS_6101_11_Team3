@@ -1,0 +1,89 @@
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+# Read the dataset and suppress column type messages
+data <- read_csv("Onlinearticle.csv", show_col_types = FALSE)  
+
+# Calculate average shares for each day of the week directly
+average_shares_by_day <- data.frame(
+  Day = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+  Average_Shares = c(
+    mean(data$shares[data$weekday_is_monday == 1]),
+    mean(data$shares[data$weekday_is_tuesday == 1]),
+    mean(data$shares[data$weekday_is_wednesday == 1]),
+    mean(data$shares[data$weekday_is_thursday == 1]),
+    mean(data$shares[data$weekday_is_friday == 1]),
+    mean(data$shares[data$weekday_is_saturday == 1]),
+    mean(data$shares[data$weekday_is_sunday == 1])
+  )
+)
+
+# Plot the results using ggplot2
+g <- ggplot(average_shares_by_day, aes(x = Day, y = Average_Shares, fill = Day)) +
+  geom_bar(stat = "identity", color = "black") +
+  theme_minimal() +
+  labs(title = "Average Shares by Day of the Week", x = "Day of the Week", y = "Average Shares") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Display the plot
+print(g)
+
+```
+What impact does publishing time have on the immediate engagement (shares within the first 24 hours) of articles, and how can we optimize publication times based on this data?
+
+Strategic Content Adjustments
+
+Considering articles published over the last year, which have exceeded 5,000 shares, what common characteristics do these articles have, and how can we apply these findings to new content?
+
+What trends can be observed in the sharing behavior over different seasons, and how should we tailor our content calendar to these trends?
+```{r}
+# Load necessary libraries
+
+# Assume a reference collection date
+reference_date <- as.Date("2015-12-31")
+
+# Calculate publication dates by subtracting timedelta from the reference date
+data$publication_date <- reference_date - data$timedelta
+
+# Initialize the Season column
+data$Season <- character(nrow(data))
+
+# Manually categorize each date into seasons
+for (i in 1:nrow(data)) {
+  month <- as.integer(format(data$publication_date[i], "%m"))
+  if (month %in% c(12, 1, 2)) {
+    data$Season[i] <- "Winter"
+  } else if (month %in% c(3, 4, 5)) {
+    data$Season[i] <- "Spring"
+  } else if (month %in% c(6, 7, 8)) {
+    data$Season[i] <- "Summer"
+  } else {
+    data$Season[i] <- "Autumn"
+  }
+}
+
+# Prepare to calculate average shares for each season
+seasons <- unique(data$Season)
+seasonal_shares <- numeric(length(seasons))
+names(seasonal_shares) <- seasons
+
+# Calculate average shares for each season
+for (season in seasons) {
+  seasonal_shares[season] <- mean(data$shares[data$Season == season], na.rm = TRUE)
+}
+
+# Convert list to data frame for plotting
+seasonal_shares_df <- data.frame(Season = names(seasonal_shares), Average_Shares = unlist(seasonal_shares))
+
+# Sort by season for better visualization
+season_order <- c("Winter", "Spring", "Summer", "Autumn")
+seasonal_shares_df$Season <- factor(seasonal_shares_df$Season, levels = season_order)
+seasonal_shares_df <- seasonal_shares_df[order(seasonal_shares_df$Season),]
+
+# Plot the results using base R
+barplot(height = seasonal_shares_df$Average_Shares, names.arg = seasonal_shares_df$Season, col = rainbow(length(seasonal_shares_df$Season)),
+        main = "Average Shares by Season", xlab = "Season", ylab = "Average Shares", las = 1, cex.names = 0.8)
+```
+
