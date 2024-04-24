@@ -1,0 +1,362 @@
+---
+title: ""
+author: "Team 3"
+date: ""
+# date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+# some of common options (and the defaults) are: 
+# include=T, eval=T, echo=T, results='hide'/'asis'/'markup',..., collapse=F, warning=T, message=T, error=T, cache=T, fig.width=6, fig.height=4, fig.dim=c(6,4) #inches, fig.align='left'/'center','right', 
+library(ezids)
+#knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+knitr::opts_chunk$set(warning = F, results = "hide", message = F)
+options(scientific=T, digits = 3) 
+# options(scipen=9, digits = 3) 
+# ‘scipen’: integer. A penalty to be applied when deciding to print numeric values in fixed or exponential notation.  Positive values bias towards fixed and negative towards scientific notation: fixed notation will be preferred unless it is more than ‘scipen’ digits wider.
+# use scipen=999 to prevent scientific notation at all times
+```
+
+```{r}
+# Loding the data
+
+data <- read.csv("OnlineNewsPopularity.csv")
+
+# Structure of dataset
+str(data)
+
+```
+
+61 total attributes, 39644 rows
+
+```{r}
+# Summary Statistics for dataset
+summary(data)
+```
+
+```{r}
+# First few rows of the dataset
+
+head(data)
+```
+
+Data Processing
+
+```{r}
+# Remove any leading/trailing white space from column names
+library(dplyr)
+
+names(data) <- trimws(names(data))
+```
+
+```{r}
+# Checking for NA values
+
+sum(is.na(data))
+```
+
+```{r}
+# Here we drop the two non-predictive (url and timedelta) attributes. They won't contribute anything 
+
+data <- subset(data, select = -c(url,timedelta))
+
+str(data)
+```
+
+Since URL is a non-numeric attribute and will not add value to our analysis so dropping it from the dataset. Also timedelta is a non-predictive attribute and not a feature of the data set so we can drop it from the dataset.
+
+```{r}
+# Merging the weekdays columns channels as one single column
+
+data$publish_DOW <- ifelse(data$weekday_is_monday == 1, 'Monday',
+                           ifelse(data$weekday_is_tuesday == 1, 'Tuesday',
+                           ifelse(data$weekday_is_wednesday == 1, 'Wednesday',
+                           ifelse(data$weekday_is_thursday == 1, 'Thursday',
+                           ifelse(data$weekday_is_friday == 1, 'Friday',
+                           ifelse(data$weekday_is_saturday == 1, 'Saturday', 'Sunday'))))))
+```
+
+```{r}
+# Merging the data channels as one single column
+
+data$data_channel <- ifelse(data$data_channel_is_lifestyle == 1, 'Lifestyle',
+                            ifelse(data$data_channel_is_entertainment == 1, 'Entertainment',
+                            ifelse(data$data_channel_is_bus == 1, 'Business',
+                            ifelse(data$data_channel_is_socmed == 1, 'Social Media',
+                            ifelse(data$data_channel_is_tech == 1, 'Technology', 'World')))))
+```
+
+```{r}
+# Drop the old data columns
+
+data <- subset(data, select = -c(weekday_is_saturday, weekday_is_friday, weekday_is_sunday,weekday_is_thursday, weekday_is_wednesday, weekday_is_tuesday, weekday_is_monday, data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world))
+```
+
+```{r}
+# Checking structure of dataset after removing columns
+
+str(data)
+```
+
+```{r}
+#Checking summary statistics of dataset
+
+summary(data)
+```
+
+```{r}
+
+#The n_tokens_content columns which contains the value 0 is removed
+
+data <- subset(data, n_tokens_content != 0)
+
+# Check the structure of this columns
+summary(data$n_tokens_content)
+```
+
+If 'n_tokens_content' represents the number of tokens in the content of the article, a value of zero might indicate that there is no actual content in the article.
+
+Exploratory Data Analysis
+
+```{r}
+library(ggplot2)
+
+# Histogram of the number of shares
+ggplot(data, aes(x = shares)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  xlim(0,20000)+
+  labs(title = "Distribution of Article Shares", x = "Number of Shares", y = "Count")
+
+```
+
+```{r}
+#Removing outliers
+
+Q1 <- quantile(data$shares, 0.25, na.rm = TRUE)
+Q3 <- quantile(data$shares, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+# Define bounds for what is considered an outlier
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+# Filter out outliers
+data <- data %>% 
+  filter(shares >= lower_bound & shares <= upper_bound)
+```
+
+```{r}
+str(data)
+```
+
+```{r}
+ggplot(data, aes(x = shares)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  labs(title = "Distribution of Article Shares", x = "Number of Shares", y = "Count")
+```
+
+What is the effect of number of images/number of videos on an articles popularity (hence the number of shares it receives)?
+
+```{r}
+# Visualizing the distribution of num_videos
+ggplot(data, aes(x = num_videos)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") + 
+  labs(title = "Distribution of num_videos", x = "Number of Videos", y = "Frequency") +
+  theme_minimal()
+```
+
+It seems like majority of the 'num_videos' is distributed among 0 and 1.This column is highly skewed and does not follow a normal distribution.
+
+```{r}
+#lets see whether between having 0 videos or 1 video, which has a better impact on number of shares.
+
+data$num_videos <- factor(data$num_videos, levels = c(0, 1))
+
+# Remove NA values from 'num_videos'
+data <- data %>%
+  filter(!is.na(num_videos)) %>%
+  mutate(num_videos = factor(num_videos)) %>%
+  droplevels()
+
+# Create side-by-side boxplots using ggplot2
+ggplot(data, aes(x = num_videos, y = shares, fill = 'num_videos')) + 
+  geom_boxplot() +
+  scale_x_discrete(labels = c("For num_videos = 0", "For num_videos = 1")) +
+  labs(y = "Shares", x = "")+
+  theme_minimal() +
+  theme(legend.position = "none")  
+
+```
+
+From the above plot we see that the average of 'num_video' 0 and 1 is about the same. We can assume that having greater number of videos does not have a direct effect on number of shares.
+
+Is there a relationship between the number of words in the content and number of words in the title in the article popularity.
+
+```{r}
+# Creating histogram plot for No.of words to popularity
+ggplot(data , aes(x = n_tokens_content)) +
+  geom_histogram(alpha = 0.5, color = "black", fill = "grey", binwidth = 50) +
+  labs(x = 'Number of words in content', y = 'Count') +
+  theme_light()
+```
+
+The graph shows it is in normal disribution. Some articles appeared tohave 0 words in their content, we will remove these erroneous records from dataset.
+
+```{r}
+data <- data[data$n_tokens_content != 0, ]
+```
+
+```{r}
+# Relationship between n_tokens_title vs n_tokens_content
+
+ggplot(data , aes(x = n_tokens_title, y = n_tokens_content)) +
+  geom_point(color = 'blue', alpha = 0.5) +
+  scale_x_continuous(breaks = seq(0, 20, by = 1))
+  labs(x = 'No. of Words in Title', y = 'No. of Words in Content') +
+  theme_dark(base_line_size = 0.5)
+```
+
+It seems like, except for a few outliers, Number of words in the content peak when the Number of words in the title are between 8-14 and they fall off gradually as it increases or decreases from this range.
+
+Evaluating whether Day of Week has any effect on popularity
+
+```{r}
+# Creating a new column target
+threshold <- median(data$shares, na.rm = TRUE)
+data <- data %>%
+  mutate(target = ifelse(shares > threshold, 1, 0))
+```
+
+```{r}
+#Count plot for Day of week
+
+# Create 'target1' based on 'target'
+data <- data%>%
+  mutate(target1 = ifelse(target == 1, "Popular", "Unpopular"))
+
+# Plotting
+ggplot(data, aes(x = publish_DOW, fill = target1)) +
+  geom_bar(position = "dodge") +
+  coord_flip() +  # Flips the axes to create a horizontal bar chart
+  scale_fill_manual(values = c("Unpopular" = "blue", "Popular" = "orange"), 
+                    labels = c("popular", "Unpopular"), name = "Key") +
+  labs(x = "Count", y = "Publish Day of the Week", title = "Popularity by Publish Day of the Week") +
+  theme(legend.position = "bottom")
+```
+
+This plot gives us highly useful insight. An article published over the weekend is more likely to be popular as opposed to an article that is published over the weekday. This makes intuitive sense since people have more time to read articles over the weekend as opposed to weekday. To showcase this, i'll plot the percentage chance of popularity on all weekdays according to our data.
+
+```{r}
+new <- data %>%
+  group_by(publish_DOW) %>%
+  summarise(url_count = n(),  # count the number of URLs
+            target_sum = sum(target, na.rm = TRUE)) %>%  # sum the 'target' values, removing NA's
+  mutate(Percent = (target_sum / url_count) * 100) %>%
+  ungroup()  # remove the grouping specification
+
+# Define the order for 'Publish_DOW'
+new$publish_DOW <- factor(new$publish_DOW, levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
+
+# Create the bar plot with ggplot2
+ggplot(new, aes(y = publish_DOW, x = Percent)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Percentage of Popular Articles", y = "Publish Day of the Week", title = "Popularity by Day of the Week") +
+  coord_flip()
+```
+
+We observe a trend. Near the weekends, the percentage of popular articles increases and peaks on Saturday, however, it gradually decreases then and is the lowest during mid week on Wednesday.
+
+Evaluating whether Data Channel has any effect on popularity
+
+```{r}
+ggplot(data, aes(y = factor(data_channel, levels = rev(c('Social Media', 'World', 'Lifestyle', 'Technology', 'Business', 'Entertainment'))), fill = target1)) +
+  geom_bar(position = "dodge", stat = "count") +
+  scale_fill_manual(values = c("Popular" = "orange", "Unpopular" = "blue"), 
+                    name = "Key", labels = c("Popular", "Unpopular")) +
+  labs(x = "Count", y = "Data Channel", title = "Count of Articles by Data Channel") +
+  theme(legend.position = "bottom") +
+  coord_flip()
+```
+
+We can observe that in category of technology and social media, the proportion of popular news is much larger than unpopular ones, and in category of world and entertainment, the proportion of unpopular news is larger than popular ones. This reflects that the readers of "Mashable.com" prefer the channel of technology and social media over the channel of world and entertainment.
+
+We can plot the percentage of this like before to see comparison between popular and unpopular.
+
+```{r}
+
+
+# Grouping by 'Data_Channel', calculating the count of 'url' and sum of 'target'
+
+new1 <- data %>%
+  group_by(data_channel) %>%
+  summarise(url_count = n(),
+            target_sum = sum(target, na.rm = TRUE)) %>%
+  mutate(Percent = (target_sum / url_count) * 100) %>%
+  ungroup()
+
+
+# Creating a bar plot 
+ggplot(new1, aes(y = data_channel, x = Percent)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  labs(x = "Percentage of Popular Articles", y = "Data Channel", title = "Popularity by Data Channel") +
+  coord_flip()
+
+
+```
+
+```{r}
+#Having a look at title sentiment vs number of shares
+ggplot(data, aes(x = title_sentiment_polarity, y = shares)) +
+  geom_point(col='brown') +  # Add the points to the plot
+  labs(x = "Title sentiment polarity", y = "Shares", title = "Title sentiment polarity vs Shares") +
+  theme_minimal()
+```
+
+Mostly the articles have titles which are not too positive or negative. It lies with in the range of -0.5 to 0.5. However highest concentration can be seen in the 0 axis i.e. high no. of articles are neutral in nature with higher number of shares.
+
+```{r}
+# Now looking at the Global subjectivity of the text w.r.t shares
+ggplot(data, aes(x = global_subjectivity, y = shares)) +
+  geom_point(col = 'orange', alpha = 0.6) + 
+  labs(x = "Global Subjectivity", y = "Shares", title = "Distribution of Global Subjectivity") +
+  theme_minimal()
+```
+
+Maximum of global_subjectivity lies between 0.3 to 0.7. Hence, we conclude that most of the articles with medium global_subjectivity have maximum shares, that is the articles contain a good blend of personal opinions and factual information.
+
+```{r}
+# Correlation Matrix
+# Select only numeric columns for the correlation matrix
+
+library(corrplot)
+numeric_data <- data[sapply(data, is.numeric)]
+
+cor_matrix <- cor(numeric_data, use = "complete.obs")  # Use pairwise.complete.obs to handle missing values
+
+cor_matrix
+
+
+```
+
+we can observe that n_non_stop_words, n_non_stop_unique_tokens, kw_avg_min has high correlations, we are dropping these columns. Along with these, the following columns are also dropped because of high correlation. \# If n columns were highly correlated, only n-1 columns are dropped.
+
+```{r}
+#Removing coulmns 
+data <- subset(data, select = -c( n_non_stop_unique_tokens, n_non_stop_words, kw_avg_min,self_reference_max_shares, self_reference_min_shares, kw_avg_avg,LDA_00, LDA_02, LDA_04, is_weekend, rate_positive_words,rate_negative_words, min_negative_polarity, title_subjectivity))
+```
+
+```{r}
+# Checking structure of data after EDA
+str(data)
+
+```
