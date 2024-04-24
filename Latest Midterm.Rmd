@@ -403,7 +403,7 @@ ggplot(top_10_countries, aes(x = reorder(Country, Revenue), y = Revenue, fill = 
   scale_fill_gradient(low = "blue", high = "red") + 
   coord_flip()
 ```
-#### Q5.What proportion of revenue is contributed by high-value customers, and how does their spending behavior compare to the overall customer base?
+#### Q5.What is the average revenue from high value customers ?, what is the impact on revenue earned from these customers and the country wise distribution?
 ```{r}
 
 threshold <- quantile(new_data$Revenue, 0.95)
