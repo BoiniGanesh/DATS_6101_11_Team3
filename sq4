@@ -49,6 +49,6 @@ ggplot(data, aes(x = global_subjectivity, y = shares)) +
 correlation_matrix <- cor(data)
 print(correlation_matrix)
 
-# Visualize correlation matrix
+# Visualize correlation 
 corrplot(correlation_matrix, method = "circle", type = "upper", tl.cex = 0.7)
 
