@@ -1,0 +1,715 @@
+---
+title: "Online News Article Popularity Classification"
+author: "Team 3"
+date: "2024-04-24`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+```{css, echo=FALSE}
+body {
+  font-family: 'Open Sans', sans-serif;
+  background-color: #fdfdfd;
+}
+
+h1 {
+  font-family: 'Lato', sans-serif;
+  color: #2a3f5f;
+  border-bottom: 4px solid #2a3f5f;
+  padding-bottom: 0.3em;
+}
+
+h2, h3, h4 {
+  font-family: 'Lato', sans-serif;
+  color: #4e617c;
+}
+
+code {
+  background-color: #f5f5f5;
+  border: 1px solid #e1e1e8;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.1);
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th, .table td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+.table th {
+  background-color: #f4f4f9;
+  color: #333;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+a {
+  color: #2a7ae2;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #f39c12; /* Orange color on hover */
+}
+
+/* Table of Contents Styles */
+div#TOC {
+  background-color: #f7f7f7; 
+  border-left: 4px solid blue; 
+}
+
+div#TOC h2 {
+  color: orange 
+}
+
+div#TOC li {
+  color: maroon;; 
+}
+
+div#TOC li li {
+  color: #e74c3c; 
+}
+
+div#TOC li li li {
+  color: #16a085; 
+}
+
+div#TOC a:hover {
+  color: #f39c12; 
+}
+
+
+
+```{r setup, include=FALSE}
+# some of common options (and the defaults) are: 
+# include=T, eval=T, echo=T, results='hide'/'asis'/'markup',..., collapse=F, warning=T, message=T, error=T, cache=T, fig.width=6, fig.height=4, fig.dim=c(6,4) #inches, fig.align='left'/'center','right', 
+library(ezids)
+knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+#knitr::opts_chunk$set(warning = F, results = "hide", message = F)
+options(scientific=T, digits = 3) 
+# options(scipen=9, digits = 3) 
+# ‘scipen’: integer. A penalty to be applied when deciding to print numeric values in fixed or exponential notation.  Positive values bias towards fixed and negative towards scientific notation: fixed notation will be preferred unless it is more than ‘scipen’ digits wider.
+# use scipen=999 to prevent scientific notation at all times
+```
+# Data Preprocessing
+## Importing the dataset 
+Let's load the initial dataset before processing and check the structure once.
+```{r}
+
+inputdata <- read.csv("OnlineNewsPopularity.csv")
+
+# Structure of dataset
+str(inputdata)
+
+```
+## Summary statistics
+As we can see there are 61 total attributes with 39644 rows.
+
+Let's see summary statistics for this data.
+
+```{r}
+# Summary Statistics for dataset
+summary(inputdata)
+```
+
+Let's print the top few rows to check how the data is populated.
+```{r}
+# First few rows of the dataset
+
+head(inputdata)
+```
+
+
+Removing any leading/trailing white space from column names
+```{r}
+# Remove any leading/trailing white space from column names
+library(dplyr)
+
+names(inputdata) <- trimws(names(inputdata))
+```
+
+Now, lets check for any missing values.
+```{r}
+# Checking for NA values
+
+sum(is.na(inputdata))
+```
+
+Since URL is a non-numeric attribute and will not add value to our analysis so dropping it from the dataset. Also timedelta is a non-predictive attribute and not a feature of the data set so we can drop it from the dataset.
+
+```{r}
+
+inputdata <- subset(inputdata, select = -c(url,timedelta))
+
+str(inputdata)
+```
+## data transformation
+
+Merging the columns into single column for easier analysis and simplifying the dataset.
+```{r}
+# Merging the weekdays columns channels as one single column
+
+inputdata$DayOfWeek <- ifelse(inputdata$weekday_is_monday == 1, 'Monday',
+                           ifelse(inputdata$weekday_is_tuesday == 1, 'Tuesday',
+                           ifelse(inputdata$weekday_is_wednesday == 1, 'Wednesday',
+                           ifelse(inputdata$weekday_is_thursday == 1, 'Thursday',
+                           ifelse(inputdata$weekday_is_friday == 1, 'Friday',
+                           ifelse(inputdata$weekday_is_saturday == 1, 'Saturday', 'Sunday'))))))
+```
+
+```{r}
+# Merging the data channels as one single column
+
+inputdata$article_channel <- ifelse(inputdata$data_channel_is_lifestyle == 1, 'Lifestyle',
+                            ifelse(inputdata$data_channel_is_entertainment == 1, 'Entertainment',
+                            ifelse(inputdata$data_channel_is_bus == 1, 'Business',
+                            ifelse(inputdata$data_channel_is_socmed == 1, 'Social Media',
+                            ifelse(inputdata$data_channel_is_tech == 1, 'Technology', 'World')))))
+```
+
+As we have merged the weekday and data channel columns , let's remove the old columns 
+```{r}
+# Drop the old data columns
+
+inputdata <- subset(inputdata, select = -c(weekday_is_saturday, weekday_is_friday, weekday_is_sunday,weekday_is_thursday, weekday_is_wednesday, weekday_is_tuesday, weekday_is_monday, data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world))
+```
+
+Let's check the structure and summary again .
+```{r}
+# Checking structure of dataset after removing columns
+
+str(inputdata)
+```
+
+```{r}
+#Checking summary statistics of dataset
+
+summary(inputdata)
+```
+
+```{r}
+
+#The n_tokens_content columns which contains the value 0 is removed
+
+inputdata <- subset(inputdata, n_tokens_content != 0)
+
+# Check the structure of this columns
+summary(inputdata$n_tokens_content)
+```
+
+If 'n_tokens_content' represents the number of tokens in the content of the article, a value of zero might indicate that there is no actual content in the article.
+
+# Exploratory Data Analysis
+
+Let's check the distribution of article shares.
+```{r}
+library(ggplot2)
+
+# Histogram of the number of shares
+ggplot(inputdata, aes(x = shares)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  xlim(0,20000)+
+  labs(title = "Distribution of Article Shares", x = "Number of Shares", y = "Count")
+
+```
+
+We could see that there are outliers present which could significantly impact the results .Let's remove the outliers using IQR .
+```{r}
+#Removing outliers
+
+Q1 <- quantile(inputdata$shares, 0.25, na.rm = TRUE)
+Q3 <- quantile(inputdata$shares, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+# Define bounds for what is considered an outlier
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+# Filter out outliers
+inputdata <- inputdata %>% 
+  filter(shares >= lower_bound & shares <= upper_bound)
+```
+
+```{r}
+str(inputdata)
+```
+
+```{r}
+ggplot(inputdata, aes(x = shares)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  labs(title = "Distribution of Article Shares", x = "Number of Shares", y = "Count")
+```
+
+## 1) Effect of Digital content on popularity
+
+Basically , What is the effect of number of images/number of videos on an articles popularity (hence the number of shares it receives)?
+
+```{r}
+# Visualizing the distribution of num_videos
+ggplot(inputdata, aes(x = num_videos)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") + 
+  labs(title = "Distribution of num_videos", x = "Number of Videos", y = "Frequency") +
+  theme_minimal()
+```
+
+It seems like majority of the 'num_videos' is distributed among 0 and 1.This column is highly skewed and does not follow a normal distribution.
+
+```{r}
+#lets see whether between having 0 videos or 1 video, which has a better impact on number of shares.
+
+inputdata$num_videos <- factor(inputdata$num_videos, levels = c(0, 1))
+
+# Remove NA values from 'num_videos'
+inputdata <- inputdata %>%
+  filter(!is.na(num_videos)) %>%
+  mutate(num_videos = factor(num_videos)) %>%
+  droplevels()
+
+# Create side-by-side boxplots using ggplot2
+ggplot(inputdata, aes(x = num_videos, y = shares, fill = 'num_videos')) + 
+  geom_boxplot() +
+  scale_x_discrete(labels = c("For num_videos = 0", "For num_videos = 1")) +
+  labs(y = "Shares", x = "")+
+  theme_minimal() +
+  theme(legend.position = "none")  
+
+```
+
+From the above plot we see that the average of 'num_video' 0 and 1 is about the same. We can assume that having greater number of videos does not have a direct effect on number of shares.
+
+
+
+## 2) No.of word to popularity
+
+Is there a relationship between the number of words in the content and number of words in the title in the article popularity.
+
+```{r}
+# Creating histogram plot for No.of words to popularity
+ggplot(inputdata , aes(x = n_tokens_content)) +
+  geom_histogram(alpha = 0.5, color = "black", fill = "grey", binwidth = 50) +
+  labs(x = 'Number of words in content', y = 'Count') +
+  theme_light()
+```
+
+The graph shows it is in normal disribution. Some articles appeared tohave 0 words in their content, we will remove these erroneous records from dataset.
+
+```{r}
+inputdata <- inputdata[inputdata$n_tokens_content != 0, ]
+```
+
+```{r}
+# Relationship between n_tokens_title vs n_tokens_content
+
+ggplot(inputdata , aes(x = n_tokens_title, y = n_tokens_content)) +
+  geom_point(color = 'blue', alpha = 0.5) +
+  scale_x_continuous(breaks = seq(0, 20, by = 1))
+  labs(x = 'No. of Words in Title', y = 'No. of Words in Content') +
+  theme_dark(base_line_size = 0.5)
+```
+
+It seems like, except for a few outliers, Number of words in the content peak when the Number of words in the title are between 8-14 and they fall off gradually as it increases or decreases from this range.
+
+## 3) Evaluating whether Day of Week has any effect on popularity
+
+```{r}
+# Creating a new column target
+threshold <- median(inputdata$shares, na.rm = TRUE)
+inputdata <- inputdata %>%
+  mutate(target = ifelse(shares > threshold, 1, 0))
+```
+
+```{r}
+#Count plot for Day of week
+
+# Create 'target1' based on 'target'
+inputdata <- inputdata%>%
+  mutate(target1 = ifelse(target == 1, "Popular", "Unpopular"))
+
+# Plotting
+ggplot(inputdata, aes(x = DayOfWeek, fill = target1)) +
+  geom_bar(position = "dodge") +
+  coord_flip() +  # Flips the axes to create a horizontal bar chart
+  scale_fill_manual(values = c("Unpopular" = "blue", "Popular" = "orange"), 
+                    labels = c("popular", "Unpopular"), name = "Key") +
+  labs(x = "Count", y = "Publish Day of the Week", title = "Popularity by Publish Day of the Week") +
+  theme(legend.position = "bottom")
+```
+
+This plot gives us highly useful insight. An article published over the weekend is more likely to be popular as opposed to an article that is published over the weekday. This makes intuitive sense since people have more time to read articles over the weekend as opposed to weekday. To showcase this, i'll plot the percentage chance of popularity on all weekdays according to our data.
+
+```{r}
+new <- inputdata %>%
+  group_by(DayOfWeek) %>%
+  summarise(url_count = n(),  # count the number of URLs
+            target_sum = sum(target, na.rm = TRUE)) %>%  # sum the 'target' values, removing NA's
+  mutate(Percent = (target_sum / url_count) * 100) %>%
+  ungroup()  # remove the grouping specification
+
+# Define the order for 'DayOfWeek'
+new$DayOfWeek <- factor(new$DayOfWeek, levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
+
+# Create the bar plot with ggplot2
+ggplot(new, aes(y = DayOfWeek, x = Percent)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Percentage of Popular Articles", y = "Publish Day of the Week", title = "Popularity by Day of the Week") +
+  coord_flip()
+```
+
+We observe a trend. Near the weekends, the percentage of popular articles increases and peaks on Saturday, however, it gradually decreases then and is the lowest during mid week on Wednesday.
+
+## 4) Evaluating whether Article Channel has any effect on popularity
+
+```{r}
+ggplot(inputdata, aes(y = factor(article_channel, levels = rev(c('Social Media', 'World', 'Lifestyle', 'Technology', 'Business', 'Entertainment'))), fill = target1)) +
+  geom_bar(position = "dodge", stat = "count") +
+  scale_fill_manual(values = c("Popular" = "orange", "Unpopular" = "blue"), 
+                    name = "Key", labels = c("Popular", "Unpopular")) +
+  labs(x = "Count", y = "Article Channel", title = "Count of Articles by Channel") +
+  theme(legend.position = "bottom") +
+  coord_flip()
+```
+
+We can observe that in category of technology and social media, the proportion of popular news is much larger than unpopular ones, and in category of world and entertainment, the proportion of unpopular news is larger than popular ones. This reflects that the readers of "Mashable.com" prefer the channel of technology and social media over the channel of world and entertainment.
+
+We can plot the percentage of this like before to see comparison between popular and unpopular.
+
+```{r}
+
+
+# Grouping by 'article_Channel', calculating the count of 'url' and sum of 'target'
+
+new1 <- inputdata %>%
+  group_by(article_channel) %>%
+  summarise(url_count = n(),
+            target_sum = sum(target, na.rm = TRUE)) %>%
+  mutate(Percent = (target_sum / url_count) * 100) %>%
+  ungroup()
+
+
+# Creating a bar plot 
+ggplot(new1, aes(y = article_channel, x = Percent)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  labs(x = "Percentage of Popular Articles", y = "Article Channel", title = "Popularity by Article Channel") +
+  coord_flip()
+
+
+```
+
+
+## 5) Title sentiment effect on popularity
+
+
+Having a look at title sentiment vs number of shares
+```{r}
+#Having a look at title sentiment vs number of shares
+ggplot(inputdata, aes(x = title_sentiment_polarity, y = shares)) +
+  geom_point(col='brown') +  # Add the points to the plot
+  labs(x = "Title sentiment polarity", y = "Shares", title = "Title sentiment polarity vs Shares") +
+  theme_minimal()
+```
+
+Mostly the articles have titles which are not too positive or negative. It lies with in the range of -0.5 to 0.5. However highest concentration can be seen in the 0 axis i.e. high no. of articles are neutral in nature with higher number of shares.
+
+## 6)  Global subjectivity effect on Popularity
+
+```{r}
+# Now looking at the Global subjectivity of the text w.r.t shares
+ggplot(inputdata, aes(x = global_subjectivity, y = shares)) +
+  geom_point(col = 'orange', alpha = 0.6) + 
+  labs(x = "Global Subjectivity", y = "Shares", title = "Distribution of Global Subjectivity") +
+  theme_minimal()
+```
+
+Maximum of global_subjectivity lies between 0.3 to 0.7. Hence, we conclude that most of the articles with medium global_subjectivity have maximum shares, that is the articles contain a good blend of personal opinions and factual information.
+
+```{r}
+# Correlation Matrix
+
+
+library(corrplot)
+numeric_data <- inputdata[sapply(inputdata, is.numeric)]
+
+cor_matrix <- cor(numeric_data, use = "complete.obs")  # Use pairwise.complete.obs to handle missing values
+
+cor_matrix
+
+
+```
+
+we can observe that n_non_stop_words, n_non_stop_unique_tokens, kw_avg_min has high correlations, we are dropping these columns. Along with these, the following columns are also dropped because of high correlation. \# If n columns were highly correlated, only n-1 columns are dropped.
+
+```{r}
+#Removing coulmns 
+inputdata <- subset(inputdata, select = -c( n_non_stop_unique_tokens, n_non_stop_words, kw_avg_min,self_reference_max_shares, self_reference_min_shares, kw_avg_avg,LDA_00, LDA_02, LDA_04, is_weekend, rate_positive_words,rate_negative_words, min_negative_polarity, title_subjectivity))
+```
+
+```{r}
+# Checking structure of data after EDA
+str(inputdata)
+
+```
+
+# Smart Questions:
+
+## Question 1.
+**Which types of articles (by category, length, and multimedia usage) consistently receive the most shares, and how can we tailor content production to these findings?**
+
+
+```{r}
+library(dplyr)
+library(randomForest)
+library(caret)
+library(Metrics)
+
+datanew <- inputdata %>%
+  
+  select(shares, n_tokens_content, num_imgs, num_videos, article_channel) %>%
+  mutate(artilce_channel = as.factor(article_channel))
+
+# Split the data into training and testing sets
+set.seed(123) 
+index <- createDataPartition(inputdata$shares, p = 0.8, list = FALSE)
+train_data <- datanew[index,]
+test_data <- datanew[-index,]
+```
+
+Let's fit a Linear Regression Model to train the data for shares as a target.
+
+```{r}
+my_lmmodel <- lm(shares ~ ., data = train_data)
+summary(my_lmmodel)
+
+# Predict on test set
+lm_predictions <- predict(my_lmmodel, test_data)
+
+# Evaluate the model
+my_lm_mse <- mean((lm_predictions - test_data$shares)^2)
+my_lm_rmse <- sqrt(my_lm_mse)
+my_lm_mae <- mean(abs(lm_predictions - test_data$shares))
+my_lm_r2 <- cor(lm_predictions, test_data$shares)^2
+
+print(paste("Linear Regression - MSE:", my_lm_mse, "RMSE:", my_lm_rmse, "MAE:", my_lm_mae, "R^2:", my_lm_r2))
+```
+
+** Random Forest Model**
+
+```{r}
+# Fit a random forest model
+my_rf_model <- randomForest(shares ~ ., data = train_data, ntree = 500)
+print(my_rf_model)
+
+# Predict on test set
+my_rf_predictions <- predict(my_rf_model, test_data)
+
+# Evaluate the model
+my_rf_mse <- mean((my_rf_predictions - test_data$shares)^2)
+my_rf_rmse <- sqrt(my_rf_mse)
+my_rf_mae <- mean(abs(my_rf_predictions - test_data$shares))
+my_rf_r2 <- cor(my_rf_predictions, test_data$shares)^2
+
+print(paste("Random Forest - MSE:", my_rf_mse, "RMSE:", my_rf_rmse, "MAE:", my_rf_mae, "R^2:", my_rf_r2))
+
+# Feature importance
+importance <- importance(my_rf_model)
+varImpPlot(my_rf_model)
+```
+
+
+From the outputs of both models we get :
+
+Linear Regression Model:MSE: 1107196.906 RMSE: 1052.234 MAE: 794.951 R²: 0.039 
+Random Forest Model:MSE: 1086468.810 RMSE: 1042.338 MAE: 788.889 R²: 0.0637 
+
+If we try to compare the models:
+
+MSE/RMSE/MAE:It would be seen that the Random Forest has  lower MSE, RMSE, and MAE when compared  to Linear Regression, meaning it's a slightly better fit.
+R²: We could also see that the  Random Forest model has a higher R², meaning  it can help us in explaining much better variability  in the share counts than the Linear Regression model.It also has a little lower error metrics , which could help in explaining more of the variance in shares when compared to linear regression model.
+But, the R² values for both models are relatively low, suggetsing that there could be other factors which could be influencing the number of shares.
+
+
+Coefficients in the Linear Regression Model: We can see that 'n_tokens_content coefficient' is positive, meaning as  length of the content increases, so does the number of shares. 
+
+'num_imgs' and 'num_videos' have positive coefficients as well, which again correlates to  more images and videos mean more shares. Various article_channel categories have varying coefficients. 
+For instance , the coefficients for 'Technology' and 'Social Media' are positive and significant, indicating that articles in these categories tend to have more shares compared to the baseline category
+
+Feature Importance in the Random Forest Model: From the  feature importance plot we can see that  'article_channel' is the most significant variable, followed by n_tokens_content, num_imgs, and num_videos. The importance  of article_channel in the feature importance plot indicates that the category of the article is a very strong  predictor of its shares.By understanding and interpreting  both the magnitude and significance of the coefficients in the linear regression and the feature importance in the random forest, hence it is clear that these factors play a role in the shareability of articles. 
+
+
+## Question 2.
+**What are the key times and days for publishing that correlate with higher shares, and how can we adjust our publication schedule accordingly?**
+
+```{r}
+
+library(randomForest)
+library(gbm)
+library(caret)
+
+# Convert 'DayOfWeek' to factor 
+inputdata$DayOfWeek <- as.factor(inputdata$DayOfWeek)
+
+# Split data into training and testing sets
+set.seed(123) 
+indexes <- createDataPartition(inputdata$shares, p=0.8, list=FALSE)
+train_data <- inputdata[indexes,]
+test_data <- inputdata[-indexes,]
+
+# Train the Random Forest model
+set.seed(123)
+my_rf_model <- randomForest(shares ~ DayOfWeek + n_tokens_title + n_tokens_content + num_hrefs, 
+                         data=train_data, ntree=100)
+print(summary(my_rf_model))
+
+# Train the GBM model
+set.seed(123)
+my_gbm_model <- gbm(shares ~ DayOfWeek + n_tokens_title + n_tokens_content + num_hrefs, 
+                 data=train_data, distribution="gaussian", n.trees=100, 
+                 interaction.depth=3, shrinkage=0.1, cv.folds=5, n.minobsinnode=10)
+print(summary(my_gbm_model))
+
+# Predict on test set using Random Forest
+my_rf_predictions <- predict(my_rf_model, test_data)
+
+# Predict on test set using GBM
+my_gbm_predictions <- predict(my_gbm_model, test_data, n.trees=100)
+
+# Evaluate the models
+my_rf_result <- postResample(my_rf_predictions, test_data$shares)
+my_gbm_result <- postResample(my_gbm_predictions, test_data$shares)
+
+print(paste("Random Forest Results: RMSE =", my_rf_result[1], "R2 =", my_rf_result[3]/1000))
+print(paste("GBM Results: RMSE =", my_gbm_result[1], "R2 =", my_gbm_result[3]/1000))
+
+# Feature importance plots for Random Forest
+varImpPlot(my_rf_model)
+
+# For GBM, display the variable importance
+importance <- summary(my_gbm_model, n.trees=100)  # Get variable importance
+print(importance)  
+```
+
+
+
+
+Random Forest Model:RMSE: 1059.387 R²: 0.808
+GBM Model:RMSE: 1054.550 R²: 0.806 
+
+Model Performance Comparison:
+We can see that both the models have very similar performance metrics. The Random Forest model has a slightly higher R² value, and the GBM model has a slightly lower RMSE. 
+ The slight differences in RMSE and R² values are minimal, which indicates we'll probably get similar predictive accuracy.This means we can choose either one of the two models and allows us to choose a model l based on other factors like interoperability, computational efficiency, or ease of integration into existing workflows.
+
+Conclusion:
+Day of the Week Significance:We can arrive that the DayOfWeek variable's prominence in the variable importance output from both the GBM and Random Forest models highlights the crucial weightage of the day of the week in increasing share counts. This is alsigned with our initial EDA where weekends were having higher shares compared to weekdays as  certain days may naturally drive more activity due to user behavior.
+
+Optimizing Publication Days:
+The conclusions we  derived from the models, mainly  the importance assigned to DayOfWeek, suggest that strategic publication timing will  significantly impact content reach and engagement. Moreover , particular days like Saturdays or sundays show higher average shares(from EDA lot also we can check) indicate that users are more likely to engage with content during weekends, could be  attributed to more free time or various usage patterns.
+
+## Question 3.
+**What specific recommendations can we make to the marketing team to increase article shares and engagement?**
+
+
+```{r}
+
+library(caret)
+library(rpart)
+
+# Prepare the dataset
+inputdata$HighEngagement <- ifelse(inputdata$shares > median(inputdata$shares), 'High', 'Low') # Binarize the target variable
+inputdata$HighEngagement <- as.factor(inputdata$HighEngagement)
+
+#  features to include in the model
+my_features <- c('n_tokens_title', 'n_tokens_content', 'num_hrefs', 'num_self_hrefs', 
+              'num_imgs', 'num_videos', 'title_sentiment_polarity', 'DayOfWeek', 
+              'article_channel')
+
+# Subset the dataset
+data_model <- inputdata[, c(my_features, 'HighEngagement')]
+
+# Create training and test datasets
+set.seed(123)
+trainIndex <- createDataPartition(data_model$HighEngagement, p = 0.80, list = FALSE)
+trainData <- data_model[trainIndex, ]
+testData <- data_model[-trainIndex, ]
+
+```
+
+Let's train the model using logistic regression and decision tree
+
+```{r}
+
+library(caret)
+library(rpart)
+library(pROC)
+
+# Fit a logistic regression model
+my_logit_model <- glm(HighEngagement ~ ., data = trainData, family = 'binomial')
+
+# Fit a decision tree model
+my_tree_model <- rpart(HighEngagement ~ ., data = trainData, method = "class")
+
+# Make predictions on the test set
+my_logit_pred <- predict(my_logit_model, testData, type = "response")
+my_tree_pred <- predict(my_tree_model, testData, type = "class")
+
+# Binarize logistic regression predictions based on a threshold (e.g., 0.5)
+my_logit_pred_class <- ifelse(my_logit_pred > 0.5, 'High', 'Low')
+my_logit_pred_class <- factor(my_logit_pred_class, levels = levels(testData$HighEngagement))
+
+# Calculate AUC for logistic regression
+my_logit_roc <- roc(testData$HighEngagement, my_logit_pred)
+my_logit_auc <- auc(my_logit_roc)
+
+# Evaluation metrics for logistic regression
+my_logit_confusion <- confusionMatrix(my_logit_pred_class, testData$HighEngagement)
+my_logit_accuracy <- my_logit_confusion$overall['Accuracy']
+my_logit_precision <- my_logit_confusion$byClass['Pos Pred Value']
+my_logit_recall <- my_logit_confusion$byClass['Sensitivity']
+my_logit_F1 <- 2 * (my_logit_precision * my_logit_recall) / (my_logit_precision + my_logit_recall)
+
+# Evaluation metrics for decision tree
+my_tree_confusion <- confusionMatrix(my_tree_pred, testData$HighEngagement)
+my_tree_accuracy <- my_tree_confusion$overall['Accuracy']
+my_tree_precision <- my_tree_confusion$byClass['Pos Pred Value']
+my_tree_recall <- my_tree_confusion$byClass['Sensitivity']
+my_tree_F1 <- 2 * (my_tree_precision * my_tree_recall) / (my_tree_precision + my_tree_recall)
+
+# Print model performance metrics
+print(paste("Logistic Regression - Accuracy:", my_logit_accuracy, "Precision:", my_logit_precision, "Recall:", my_logit_recall, "F1 Score:", my_logit_F1, "AUC:", my_logit_auc))
+print(paste("Decision Tree - Accuracy:", my_tree_accuracy, "Precision:", my_tree_precision, "Recall:", my_tree_recall, "F1 Score:", my_tree_F1))
+
+# Compare AUC directly
+my_tree_roc <- roc(testData$HighEngagement, as.numeric(my_tree_pred))
+my_tree_auc <- auc(my_tree_roc)
+print(paste("Logistic Regression AUC:", my_logit_auc))
+print(paste("Decision Tree AUC:", my_tree_auc))
+
+# Decide which model is better
+better_model <- ifelse(my_logit_auc > my_tree_auc, "Logistic Regression", "Decision Tree")
+print(paste("The better model is:", better_model))
+```
+
+
+Decision Tree Superiority in Classification: We can see that the Decision Tree model outperforms the Logistic Regression in terms of accuracy (61.77% vs. 37.19%) and F1 score (0.5611 vs. 0.4169), in turn making it more effective for classifying articles as having high or low engagement.
+
+Logistic Regression's Ranking Capability: Even though it is having lower overall classification performance, this model has a higher AUC (0.6725 vs. 0.6121), meaning it is actually much better at differentiating between higher and lower probabilities of engagement. This indicates that  it can effectively rank articles by the likelihood of high engagement.
+
+Content Production:
+Multimedia Integration: If we increase the inclusion of images (num_imgs) and videos (num_videos) the shares will be higher as these fetaures ahve postive coefficients.
+Positive Sentiment in Titles: We can suggest to use  a positive tone in article titles (title_sentiment_polarity), as again this is associated with higher engagement.
+Content Length: We need to make required modifications in article length (n_tokens_content) with caution due to its ambiguous effects on engagement.
+
