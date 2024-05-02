@@ -96,7 +96,6 @@ div#TOC a:hover {
 
 
 
-```{r setup, include=FALSE}
 # some of common options (and the defaults) are: 
 # include=T, eval=T, echo=T, results='hide'/'asis'/'markup',..., collapse=F, warning=T, message=T, error=T, cache=T, fig.width=6, fig.height=4, fig.dim=c(6,4) #inches, fig.align='left'/'center','right', 
 library(ezids)
@@ -107,9 +106,13 @@ options(scientific=T, digits = 3)
 # ‘scipen’: integer. A penalty to be applied when deciding to print numeric values in fixed or exponential notation.  Positive values bias towards fixed and negative towards scientific notation: fixed notation will be preferred unless it is more than ‘scipen’ digits wider.
 # use scipen=999 to prevent scientific notation at all times
 ```
+
 # Data Preprocessing
-## Importing the dataset 
+
+## Importing the dataset
+
 Let's load the initial dataset before processing and check the structure once.
+
 ```{r}
 
 inputdata <- read.csv("OnlineNewsPopularity.csv")
@@ -118,7 +121,9 @@ inputdata <- read.csv("OnlineNewsPopularity.csv")
 str(inputdata)
 
 ```
+
 ## Summary statistics
+
 As we can see there are 61 total attributes with 39644 rows.
 
 Let's see summary statistics for this data.
@@ -129,14 +134,15 @@ summary(inputdata)
 ```
 
 Let's print the top few rows to check how the data is populated.
+
 ```{r}
 # First few rows of the dataset
 
 head(inputdata)
 ```
 
-
 Removing any leading/trailing white space from column names
+
 ```{r}
 # Remove any leading/trailing white space from column names
 library(dplyr)
@@ -145,6 +151,7 @@ names(inputdata) <- trimws(names(inputdata))
 ```
 
 Now, lets check for any missing values.
+
 ```{r}
 # Checking for NA values
 
@@ -159,9 +166,11 @@ inputdata <- subset(inputdata, select = -c(url,timedelta))
 
 str(inputdata)
 ```
+
 ## data transformation
 
 Merging the columns into single column for easier analysis and simplifying the dataset.
+
 ```{r}
 # Merging the weekdays columns channels as one single column
 
@@ -183,7 +192,8 @@ inputdata$article_channel <- ifelse(inputdata$data_channel_is_lifestyle == 1, 'L
                             ifelse(inputdata$data_channel_is_tech == 1, 'Technology', 'World')))))
 ```
 
-As we have merged the weekday and data channel columns , let's remove the old columns 
+As we have merged the weekday and data channel columns , let's remove the old columns
+
 ```{r}
 # Drop the old data columns
 
@@ -191,6 +201,7 @@ inputdata <- subset(inputdata, select = -c(weekday_is_saturday, weekday_is_frida
 ```
 
 Let's check the structure and summary again .
+
 ```{r}
 # Checking structure of dataset after removing columns
 
@@ -218,6 +229,7 @@ If 'n_tokens_content' represents the number of tokens in the content of the arti
 # Exploratory Data Analysis
 
 Let's check the distribution of article shares.
+
 ```{r}
 library(ggplot2)
 
@@ -230,6 +242,7 @@ ggplot(inputdata, aes(x = shares)) +
 ```
 
 We could see that there are outliers present which could significantly impact the results .Let's remove the outliers using IQR .
+
 ```{r}
 #Removing outliers
 
@@ -292,8 +305,6 @@ ggplot(inputdata, aes(x = num_videos, y = shares, fill = 'num_videos')) +
 ```
 
 From the above plot we see that the average of 'num_video' 0 and 1 is about the same. We can assume that having greater number of videos does not have a direct effect on number of shares.
-
-
 
 ## 2) No.of word to popularity
 
@@ -411,22 +422,30 @@ ggplot(new1, aes(y = article_channel, x = Percent)) +
 
 ```
 
-
 ## 5) Title sentiment effect on popularity
 
-
 Having a look at title sentiment vs number of shares
+
 ```{r}
+library(ggplot2)
+
 #Having a look at title sentiment vs number of shares
 ggplot(inputdata, aes(x = title_sentiment_polarity, y = shares)) +
-  geom_point(col='brown') +  # Add the points to the plot
-  labs(x = "Title sentiment polarity", y = "Shares", title = "Title sentiment polarity vs Shares") +
-  theme_minimal()
+  geom_point(aes(color = title_sentiment_polarity > 0),
+             size = 1.5) +
+  scale_color_manual(values = c("red", "green")) +
+  labs(
+    x = "Title Sentiment Polarity",
+    y = "Shares",
+    title = "Title Sentiment Polarity vs Shares"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
 ```
 
 Mostly the articles have titles which are not too positive or negative. It lies with in the range of -0.5 to 0.5. However highest concentration can be seen in the 0 axis i.e. high no. of articles are neutral in nature with higher number of shares.
 
-## 6)  Global subjectivity effect on Popularity
+## 6) Global subjectivity effect on Popularity
 
 ```{r}
 # Now looking at the Global subjectivity of the text w.r.t shares
@@ -468,8 +487,8 @@ str(inputdata)
 # Smart Questions:
 
 ## Question 1.
-**Which types of articles (by category, length, and multimedia usage) consistently receive the most shares, and how can we tailor content production to these findings?**
 
+**Which types of articles (by category, length, and multimedia usage) consistently receive the most shares, and how can we tailor content production to these findings?**
 
 ```{r}
 library(dplyr)
@@ -507,7 +526,7 @@ my_lm_r2 <- cor(lm_predictions, test_data$shares)^2
 print(paste("Linear Regression - MSE:", my_lm_mse, "RMSE:", my_lm_rmse, "MAE:", my_lm_mae, "R^2:", my_lm_r2))
 ```
 
-** Random Forest Model**
+\*\* Random Forest Model\*\*
 
 ```{r}
 # Fit a random forest model
@@ -530,28 +549,22 @@ importance <- importance(my_rf_model)
 varImpPlot(my_rf_model)
 ```
 
-
 From the outputs of both models we get :
 
-Linear Regression Model:MSE: 1107196.906 RMSE: 1052.234 MAE: 794.951 R²: 0.039 
-Random Forest Model:MSE: 1086468.810 RMSE: 1042.338 MAE: 788.889 R²: 0.0637 
+Linear Regression Model:MSE: 1107196.906 RMSE: 1052.234 MAE: 794.951 R²: 0.039 Random Forest Model:MSE: 1086468.810 RMSE: 1042.338 MAE: 788.889 R²: 0.0637
 
 If we try to compare the models:
 
-MSE/RMSE/MAE:It would be seen that the Random Forest has  lower MSE, RMSE, and MAE when compared  to Linear Regression, meaning it's a slightly better fit.
-R²: We could also see that the  Random Forest model has a higher R², meaning  it can help us in explaining much better variability  in the share counts than the Linear Regression model.It also has a little lower error metrics , which could help in explaining more of the variance in shares when compared to linear regression model.
-But, the R² values for both models are relatively low, suggetsing that there could be other factors which could be influencing the number of shares.
+MSE/RMSE/MAE:It would be seen that the Random Forest has lower MSE, RMSE, and MAE when compared to Linear Regression, meaning it's a slightly better fit. R²: We could also see that the Random Forest model has a higher R², meaning it can help us in explaining much better variability in the share counts than the Linear Regression model.It also has a little lower error metrics , which could help in explaining more of the variance in shares when compared to linear regression model. But, the R² values for both models are relatively low, suggetsing that there could be other factors which could be influencing the number of shares.
 
+Coefficients in the Linear Regression Model: We can see that 'n_tokens_content coefficient' is positive, meaning as length of the content increases, so does the number of shares.
 
-Coefficients in the Linear Regression Model: We can see that 'n_tokens_content coefficient' is positive, meaning as  length of the content increases, so does the number of shares. 
+'num_imgs' and 'num_videos' have positive coefficients as well, which again correlates to more images and videos mean more shares. Various article_channel categories have varying coefficients. For instance , the coefficients for 'Technology' and 'Social Media' are positive and significant, indicating that articles in these categories tend to have more shares compared to the baseline category
 
-'num_imgs' and 'num_videos' have positive coefficients as well, which again correlates to  more images and videos mean more shares. Various article_channel categories have varying coefficients. 
-For instance , the coefficients for 'Technology' and 'Social Media' are positive and significant, indicating that articles in these categories tend to have more shares compared to the baseline category
-
-Feature Importance in the Random Forest Model: From the  feature importance plot we can see that  'article_channel' is the most significant variable, followed by n_tokens_content, num_imgs, and num_videos. The importance  of article_channel in the feature importance plot indicates that the category of the article is a very strong  predictor of its shares.By understanding and interpreting  both the magnitude and significance of the coefficients in the linear regression and the feature importance in the random forest, hence it is clear that these factors play a role in the shareability of articles. 
-
+Feature Importance in the Random Forest Model: From the feature importance plot we can see that 'article_channel' is the most significant variable, followed by n_tokens_content, num_imgs, and num_videos. The importance of article_channel in the feature importance plot indicates that the category of the article is a very strong predictor of its shares.By understanding and interpreting both the magnitude and significance of the coefficients in the linear regression and the feature importance in the random forest, hence it is clear that these factors play a role in the shareability of articles.
 
 ## Question 2.
+
 **What are the key times and days for publishing that correlate with higher shares, and how can we adjust our publication schedule accordingly?**
 
 ```{r}
@@ -603,25 +616,17 @@ importance <- summary(my_gbm_model, n.trees=100)  # Get variable importance
 print(importance)  
 ```
 
+Random Forest Model:RMSE: 1059.387 R²: 0.808 GBM Model:RMSE: 1054.550 R²: 0.806
 
+Model Performance Comparison: We can see that both the models have very similar performance metrics. The Random Forest model has a slightly higher R² value, and the GBM model has a slightly lower RMSE. The slight differences in RMSE and R² values are minimal, which indicates we'll probably get similar predictive accuracy.This means we can choose either one of the two models and allows us to choose a model l based on other factors like interoperability, computational efficiency, or ease of integration into existing workflows.
 
+Conclusion: Day of the Week Significance:We can arrive that the DayOfWeek variable's prominence in the variable importance output from both the GBM and Random Forest models highlights the crucial weightage of the day of the week in increasing share counts. This is alsigned with our initial EDA where weekends were having higher shares compared to weekdays as certain days may naturally drive more activity due to user behavior.
 
-Random Forest Model:RMSE: 1059.387 R²: 0.808
-GBM Model:RMSE: 1054.550 R²: 0.806 
-
-Model Performance Comparison:
-We can see that both the models have very similar performance metrics. The Random Forest model has a slightly higher R² value, and the GBM model has a slightly lower RMSE. 
- The slight differences in RMSE and R² values are minimal, which indicates we'll probably get similar predictive accuracy.This means we can choose either one of the two models and allows us to choose a model l based on other factors like interoperability, computational efficiency, or ease of integration into existing workflows.
-
-Conclusion:
-Day of the Week Significance:We can arrive that the DayOfWeek variable's prominence in the variable importance output from both the GBM and Random Forest models highlights the crucial weightage of the day of the week in increasing share counts. This is alsigned with our initial EDA where weekends were having higher shares compared to weekdays as  certain days may naturally drive more activity due to user behavior.
-
-Optimizing Publication Days:
-The conclusions we  derived from the models, mainly  the importance assigned to DayOfWeek, suggest that strategic publication timing will  significantly impact content reach and engagement. Moreover , particular days like Saturdays or sundays show higher average shares(from EDA lot also we can check) indicate that users are more likely to engage with content during weekends, could be  attributed to more free time or various usage patterns.
+Optimizing Publication Days: The conclusions we derived from the models, mainly the importance assigned to DayOfWeek, suggest that strategic publication timing will significantly impact content reach and engagement. Moreover , particular days like Saturdays or sundays show higher average shares(from EDA lot also we can check) indicate that users are more likely to engage with content during weekends, could be attributed to more free time or various usage patterns.
 
 ## Question 3.
-**What specific recommendations can we make to the marketing team to increase article shares and engagement?**
 
+**What specific recommendations can we make to the marketing team to increase article shares and engagement?**
 
 ```{r}
 
@@ -703,13 +708,8 @@ better_model <- ifelse(my_logit_auc > my_tree_auc, "Logistic Regression", "Decis
 print(paste("The better model is:", better_model))
 ```
 
-
 Decision Tree Superiority in Classification: We can see that the Decision Tree model outperforms the Logistic Regression in terms of accuracy (61.77% vs. 37.19%) and F1 score (0.5611 vs. 0.4169), in turn making it more effective for classifying articles as having high or low engagement.
 
-Logistic Regression's Ranking Capability: Even though it is having lower overall classification performance, this model has a higher AUC (0.6725 vs. 0.6121), meaning it is actually much better at differentiating between higher and lower probabilities of engagement. This indicates that  it can effectively rank articles by the likelihood of high engagement.
+Logistic Regression's Ranking Capability: Even though it is having lower overall classification performance, this model has a higher AUC (0.6725 vs. 0.6121), meaning it is actually much better at differentiating between higher and lower probabilities of engagement. This indicates that it can effectively rank articles by the likelihood of high engagement.
 
-Content Production:
-Multimedia Integration: If we increase the inclusion of images (num_imgs) and videos (num_videos) the shares will be higher as these fetaures ahve postive coefficients.
-Positive Sentiment in Titles: We can suggest to use  a positive tone in article titles (title_sentiment_polarity), as again this is associated with higher engagement.
-Content Length: We need to make required modifications in article length (n_tokens_content) with caution due to its ambiguous effects on engagement.
-
+Content Production: Multimedia Integration: If we increase the inclusion of images (num_imgs) and videos (num_videos) the shares will be higher as these fetaures ahve postive coefficients. Positive Sentiment in Titles: We can suggest to use a positive tone in article titles (title_sentiment_polarity), as again this is associated with higher engagement. Content Length: We need to make required modifications in article length (n_tokens_content) with caution due to its ambiguous effects on engagement.
